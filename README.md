@@ -12,7 +12,21 @@ This repo aims to provide a simple to setup way to interactively debug exploits 
    dotnet pack src/PoE.Replayer -c Release -o /tmp/poe_nupkgs
    ```
 4. Add it to the $PATH -> `export PATH="$PATH:/home/USER/.dotnet/tools"`
-5. Install QEMU user (newest versions will allow GDB to map memory)
+5. Install QEMU user (newest versions will allow GDB to map memory), and Tmux
+
+# Example of usage
+
+```
+[arthub@archlinux dir]$ ./debug.sh 
+Usage: ./debug.sh <script.poe> <binary> [gdb_port] [session_name]
+[arthub@archlinux dir]$ ./debug.sh exploit.poe badformat
+Created wrapper "{/home/.../wrapper.sh}" with params  -g   -L 
+Connecting to tmux session 'poe_debug'...
+[exited]
+```
+
+<img width="1919" height="1004" alt="image" src="https://github.com/user-attachments/assets/59cb517a-2bbd-435e-bf46-9faa51a42988" />
+
 
  
  
