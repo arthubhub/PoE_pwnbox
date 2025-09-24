@@ -33,10 +33,10 @@ fi
 
 # create the wrapper file
 echo "" > "${WRAPPER}"
-echo "#!/usr/bin/env bash" >> "${WRAPPER}"
+echo "#!/usr/bin/env bash" > "${WRAPPER}"
 echo "exec qemu-i386 -g ${GDB_PORT} -L \"${LIB_PATH}\" \"${BINARY}\"" >> "${WRAPPER}"
 chmod +x "${WRAPPER}"
-echo "Created wrapper \"{$WRAPPER}\" with params" " -g " " -L "
+echo "Created wrapper \"${WRAPPER}\" with params" " -g " " -L "
 
 # create tmux session with two sides
 # left pane: poe & wrapper
@@ -50,18 +50,18 @@ tmux split-window -h -t "${SESSION}:0" -c "${WORKDIR}"
 
 LEFT_CMD="poe stdin -o ${POE_OUT} \"${POE_FILE}\" \"${WRAPPER}\""
 
-RIGHT_CMD="gdb -q \
-	-ex 'set disassembly-flavor intel'\
-	-ex 'set debuginfod enabled on' \
-	-ex \"file ${BINARY}\" \
-	-ex \"set sysroot ${LIB_PATH}\" \
-	-ex 'set solib-search-path ${LIB_PATH}
-	-ex \"set architecture ${ARCH}\" \
-	-ex 'target remote localhost:${GDB_PORT}' \
-	-ex 'unset env LINES' \
+RIGHT_CMD="pwndbg -q -ex 'set disassembly-flavor intel'  \
+	-ex 'set debuginfod enabled on'  \
+	-ex \"file ${BINARY} \"  \
+	-ex \"set sysroot ${LIB_PATH} \"  \
+	-ex \"set solib-search-path ${LIB_PATH}\" \
+	-ex \"set architecture ${ARCH} \"  \
+	-ex \"target remote localhost:${GDB_PORT} \"  \
+	-ex 'unset env LINES'  \
 	-ex 'unset env COLUMNS'"
 
 # send the commands
+
 tmux send-keys -t "${SESSION}:0.0" "${LEFT_CMD}" C-m
 tmux send-keys -t "${SESSION}:0.1" "${RIGHT_CMD}" C-m
 
@@ -72,4 +72,3 @@ tmux select-pane -t "${SESSION}:0.1" -T "GDB"
 # attach to session
 echo "Connecting to tmux session '${SESSION}'..."
 tmux attach -t "${SESSION}"
-
