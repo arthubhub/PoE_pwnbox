@@ -48,7 +48,7 @@ tmux new-session -d -s "${SESSION}" -c "${WORKDIR}"
 # split window 
 tmux split-window -h -t "${SESSION}:0" -c "${WORKDIR}"
 
-LEFT_CMD="poe stdin -o ${POE_OUT} \"${POE_FILE}\" \"${WRAPPER}\""
+LEFT_CMD="poe stdin --default-timeout 64000 -o ${POE_OUT} \"${POE_FILE}\" \"${WRAPPER}\""
 
 RIGHT_CMD="pwndbg -q -ex 'set disassembly-flavor intel'  \
 	-ex 'set debuginfod enabled on'  \
